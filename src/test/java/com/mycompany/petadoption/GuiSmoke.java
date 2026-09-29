@@ -3,6 +3,7 @@ package com.mycompany.petadoption;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.mycompany.petadoption.config.*;
+import com.mycompany.petadoption.model.Models.Role;
 import com.mycompany.petadoption.ui.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -35,7 +36,21 @@ final class GuiSmoke {
       await(() -> has(frame, "Create account"));
       capture(frame, "02-register");
       click(frame, "Already a member? Sign in");
-      login(frame, "admin@test.example", password);
+      click(frame, "Admin sign-in");
+      await(() -> has(frame, "Sign in as admin"));
+      assertFalse(edt(() -> has(frame, "New here? Create an account")));
+      capture(frame, "01-admin-login");
+      login(frame, "user@test.example", password, Role.ADMIN);
+      JDialog wrongRole = dialog("Please check");
+      assertTrue(
+          edt(
+              () ->
+                  labels(wrongRole).stream()
+                      .anyMatch(s -> s != null && s.contains("User sign-in"))));
+      click(wrongRole, "OK");
+      await(() -> !wrongRole.isShowing());
+      assertTrue(edt(() -> has(frame, "Sign in as admin")));
+      login(frame, "admin@test.example", password, Role.ADMIN);
       await(() -> has(frame, "Pet management"));
       await(() -> labels(frame).contains("2"));
       capture(frame, "03-admin-dashboard");
@@ -75,7 +90,7 @@ final class GuiSmoke {
       capture(frame, "11-reports");
       click(frame, "Sign out");
       await(() -> has(frame, "New here? Create an account"));
-      login(frame, "user@test.example", password);
+      login(frame, "user@test.example", password, Role.USER);
       await(() -> has(frame, "Find a companion"));
       assertFalse(edt(() -> has(frame, "People & access")));
       capture(frame, "12-user-dashboard");
@@ -119,7 +134,7 @@ final class GuiSmoke {
           });
       click(frame, "Sign out");
       await(() -> has(frame, "New here? Create an account"));
-      login(frame, "admin@test.example", password);
+      login(frame, "admin@test.example", password, Role.ADMIN);
       await(() -> has(frame, "Adoption requests"));
       click(frame, "Adoption requests");
       await(() -> tableRows(frame) == 1);
@@ -165,7 +180,11 @@ final class GuiSmoke {
     }
   }
 
-  private static void login(MainFrame f, String email, String password) throws Exception {
+  private static void login(MainFrame f, String email, String password, Role role)
+      throws Exception {
+    String submit = role == Role.ADMIN ? "Sign in as admin" : "Sign in as user";
+    click(f, role == Role.ADMIN ? "Admin sign-in" : "User sign-in");
+    await(() -> has(f, submit));
     edt(
         () -> {
           var fields = all(f, JTextField.class);
@@ -177,7 +196,7 @@ final class GuiSmoke {
           all(f, JPasswordField.class).getFirst().setText(password);
           return null;
         });
-    click(f, "Sign in");
+    click(f, submit);
   }
 
   private static void click(Container c, String text) throws Exception {

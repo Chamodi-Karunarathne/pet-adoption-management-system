@@ -1,5 +1,6 @@
 package com.mycompany.petadoption.ui;
 
+import com.mycompany.petadoption.model.Models.Role;
 import com.mycompany.petadoption.service.*;
 import java.awt.*;
 import java.util.function.Consumer;
@@ -9,6 +10,8 @@ public final class AuthPanel extends JPanel {
   private final AuthService auth;
   private final Consumer<Session> onLogin;
   private boolean register;
+  private Role role = Role.USER;
+  private long generation;
 
   public AuthPanel(AuthService auth, Consumer<Session> onLogin) {
     this.auth = auth;
@@ -18,6 +21,8 @@ public final class AuthPanel extends JPanel {
   }
 
   private void build() {
+    long view = ++generation;
+    Role selectedRole = role;
     removeAll();
     JPanel story = Theme.panel(new BorderLayout(0, 20));
     story.setBackground(Theme.GREEN);
@@ -27,7 +32,8 @@ public final class AuthPanel extends JPanel {
     brand.setForeground(Color.WHITE);
     story.add(brand, BorderLayout.NORTH);
     story.add(new PhotoPanel("/images/welcome.jpg", 430, 430));
-    JLabel tagline = Theme.title("Every companion deserves a home.", 20);
+    JLabel tagline =
+        Theme.title(Strings.get(role == Role.ADMIN ? "admin.tagline" : "user.tagline"), 20);
     tagline.setForeground(Color.WHITE);
     story.add(tagline, BorderLayout.SOUTH);
     JPanel form = Theme.panel(new GridBagLayout());
@@ -41,11 +47,15 @@ public final class AuthPanel extends JPanel {
     confirm.setMargin(new Insets(9, 10, 9, 10));
     JPanel fields =
         Theme.column(
-            Theme.title(register ? Strings.get("register") : Strings.get("login"), 30),
+            Theme.title(
+                register
+                    ? Strings.get("register")
+                    : Strings.get(role == Role.ADMIN ? "admin.heading" : "user.heading"),
+                30),
             Theme.muted(
                 register
                     ? "Start your adoption journey."
-                    : "Welcome back. Your next chapter starts here."));
+                    : Strings.get(role == Role.ADMIN ? "admin.subtitle" : "user.subtitle")));
     JPanel inputs =
         register
             ? Theme.column(
@@ -58,7 +68,11 @@ public final class AuthPanel extends JPanel {
                 Theme.fieldRow(Strings.get("email"), email),
                 Theme.fieldRow(Strings.get("password"), password));
     JButton submit =
-        Theme.primary(register ? Strings.get("register") : Strings.get("login"), () -> {});
+        Theme.primary(
+            register
+                ? Strings.get("register")
+                : Strings.get(role == Role.ADMIN ? "admin.submit" : "user.submit"),
+            () -> {});
     submit.addActionListener(
         e ->
             Ui.action(
@@ -82,11 +96,20 @@ public final class AuthPanel extends JPanel {
                           return true;
                         },
                         v -> {
+                          if (view != generation) return;
                           register = false;
                           build();
                           Ui.message(this, "Your account is ready. Sign in to continue.");
                         });
-                  } else Ui.work(this, submit, () -> auth.login(em, pw), onLogin);
+                  } else
+                    Ui.work(
+                        this,
+                        submit,
+                        () -> auth.login(em, pw, selectedRole),
+                        session -> {
+                          if (view != generation) auth.logout(session);
+                          else onLogin.accept(session);
+                        });
                   password.setText("");
                   confirm.setText("");
                 }));
@@ -106,14 +129,28 @@ public final class AuthPanel extends JPanel {
           Strings.french(language.getSelectedIndex() == 1);
           build();
         });
+    JButton userAccess = Theme.button(Strings.get("user.access"), () -> selectRole(Role.USER));
+    JButton adminAccess = Theme.button(Strings.get("admin.access"), () -> selectRole(Role.ADMIN));
+    for (JButton access : new JButton[] {userAccess, adminAccess}) {
+      boolean selected = access == (role == Role.ADMIN ? adminAccess : userAccess);
+      access.setBackground(selected ? Theme.GREEN : Theme.BACKGROUND);
+      access.setForeground(selected ? Color.WHITE : Theme.INK);
+      access
+          .getAccessibleContext()
+          .setAccessibleDescription(selected ? "Selected sign-in role" : "Switch sign-in role");
+    }
+    JPanel accessOptions = Theme.panel(new GridLayout(1, 2, 12, 0));
+    accessOptions.add(userAccess);
+    accessOptions.add(adminAccess);
     JPanel box =
         Theme.column(
+            accessOptions,
             fields,
             inputs,
             submit,
-            switchMode,
+            role == Role.USER ? switchMode : Theme.muted(Strings.get("admin.provisioning")),
             Theme.fieldRow("Language / Langue", language),
-            Theme.muted("Adopter and administrator accounts sign in here."));
+            Theme.muted(Strings.get(role == Role.ADMIN ? "admin.scope" : "user.scope")));
     form.add(box);
     JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, story, Theme.scroll(form));
     split.setResizeWeight(.46);
@@ -122,5 +159,11 @@ public final class AuthPanel extends JPanel {
     add(split);
     revalidate();
     repaint();
+  }
+
+  private void selectRole(Role next) {
+    role = next;
+    register = false;
+    build();
   }
 }
