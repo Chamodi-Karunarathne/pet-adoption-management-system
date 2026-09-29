@@ -28,9 +28,11 @@ NetBeans run/debug/profile actions and the executable JAR use `Application`. `Lo
 
 ## Workflows
 
-**Adopter:** register → sign in → browse/search/filter → inspect pet details → submit an application with care consent → follow its status → withdraw a pending request or view/export/print an approved adoption receipt. Edit name/phone and change password in My profile.
+**Adopter:** choose **User sign-in** → register or sign in → browse/search/filter → inspect pet details → submit an application with care consent → follow its status → withdraw a pending request or view/export/print an approved adoption receipt. Edit name/phone and change password in My profile.
 
-**Administrator:** sign in → review dashboard → manage catalog and individual pets → review application details and approve/reject with a note → manage supply quantities with a reason → manage account roles/activation → generate and export/print reports. Self-demotion/deactivation is disallowed. Pets with completed adoptions cannot be silently returned to availability.
+**Administrator:** choose **Admin sign-in** → sign in with an administrator account → review dashboard → manage catalog and individual pets → review application details and approve/reject with a note → manage supply quantities with a reason → manage account roles/activation → generate and export/print reports. Self-demotion/deactivation is disallowed. Pets with completed adoptions cannot be silently returned to availability.
+
+The selected sign-in role must match the account's database role. Choosing Admin does not grant permissions. Public registration creates User accounts only; administrators provision additional administrator accounts through People & access. For the first administrator on a new database, use the bootstrap command below.
 
 One pending application per adopter preserves the legacy one-at-a-time rule. Approval is the completion boundary: it creates an adoption and marks the pet adopted atomically, then rejects competing pending applications for that pet. There is no separate payment or physical-handover subsystem.
 

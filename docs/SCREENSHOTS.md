@@ -1,10 +1,14 @@
 # UI review captures
 
-These images show real Swing screens backed by an isolated PostgreSQL test database. Names and counts are test fixtures; production screens query their configured database. Full captures (20 states) are available locally under `.local/screenshots`.
+These images show real Swing screens backed by an isolated PostgreSQL test database. Names and counts are test fixtures; production screens query their configured database. Full captures (21 states) are available locally under `.local/screenshots`.
 
-## Sign in
+## User sign-in
 
 ![Sign in](screenshots/login.png)
+
+## Admin sign-in
+
+![Admin access with a separate role selection](screenshots/admin-login.png)
 
 ## Administrator dashboard
 
