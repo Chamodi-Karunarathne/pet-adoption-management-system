@@ -20,6 +20,11 @@ public final class AuthService {
   }
 
   public Session login(String email, char[] password) throws SQLException {
+    return login(email, password, null);
+  }
+
+  /** Authenticate credentials and, when selected, require the account's stored role. */
+  public Session login(String email, char[] password, Role expectedRole) throws SQLException {
     try {
       String normalized = Validation.email(email);
       User user =
@@ -45,6 +50,10 @@ public final class AuthService {
         throw new IllegalArgumentException(
             "Sign-in failed. Check your email and password, or wait five minutes if attempts were"
                 + " exceeded.");
+      if (expectedRole != null && user.role() != expectedRole)
+        throw new IllegalArgumentException(
+            "This account does not have the selected role. Choose "
+                + (user.role() == Role.ADMIN ? "Admin sign-in." : "User sign-in."));
       Session session = new Session(user.id());
       sessions.put(session, Instant.now().plusSeconds(8 * 3600));
       return session;

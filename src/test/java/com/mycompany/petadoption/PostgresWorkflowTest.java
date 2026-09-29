@@ -131,6 +131,28 @@ class PostgresWorkflowTest {
   }
 
   @Test
+  void selectedLoginRoleMustMatchStoredRole() throws Exception {
+    for (Role selected : Role.values()) {
+      String email = selected == Role.ADMIN ? "admin@test.example" : "user@test.example";
+      char[] password = PASSWORD.toCharArray();
+      Session session = auth.login(email, password, selected);
+      assertEquals(selected, auth.current(session).role());
+      assertArrayEquals(new char[password.length], password);
+      auth.logout(session);
+      char[] mismatch = PASSWORD.toCharArray();
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> auth.login(email, mismatch, selected == Role.ADMIN ? Role.USER : Role.ADMIN));
+      assertArrayEquals(new char[mismatch.length], mismatch);
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> auth.login(email, "wrong password".toCharArray(), selected));
+    }
+    assertEquals(Role.USER, auth.current(user).role());
+    assertThrows(SecurityException.class, () -> admin.users(user));
+  }
+
+  @Test
   void loginLockoutAndPasswordChange() throws Exception {
     for (int i = 0; i < 5; i++)
       assertThrows(
